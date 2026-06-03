@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --grid-line: rgba(91, 91, 214, 0.06);
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 96px;
+}
+
+body {
+  background-color: theme("colors.bg");
+  color: theme("colors.ink.DEFAULT");
+  font-feature-settings: "ss01", "cv01";
+}
+
+::selection {
+  background: rgba(91, 91, 214, 0.18);
+}
+
+@layer components {
+  .container-x {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-all duration-200 will-change-transform;
+  }
+  .btn-primary {
+    @apply btn bg-accent-grad text-white shadow-glow hover:-translate-y-0.5 hover:shadow-lift active:translate-y-0;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink hover:border-accent/40 hover:text-accent;
+  }
+  .btn-light {
+    @apply btn bg-white/90 text-accent-ink hover:bg-white;
+  }
+
+  .card {
+    @apply rounded-3xl border border-line bg-surface shadow-soft;
+  }
+
+  .stat-num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Тонкая декоративная сетка для фоновых секций */
+.bg-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Светящиеся «пятна» — деликатный премиум-декор */
+.glow-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-float,
+  .animate-float-slow,
+  .animate-shimmer {
+    animation: none !important;
+  }
+}
+
+/* Кастомный слайдер калькулятора */
+input[type="range"].farm-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: theme("colors.line");
+  outline: none;
+}
+input[type="range"].farm-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 6px solid theme("colors.accent.DEFAULT");
+  box-shadow: 0 6px 18px rgba(91, 91, 214, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+input[type="range"].farm-range::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+}
+input[type="range"].farm-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 6px solid theme("colors.accent.DEFAULT");
+  box-shadow: 0 6px 18px rgba(91, 91, 214, 0.4);
+  cursor: pointer;
+}
