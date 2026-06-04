@@ -18,7 +18,6 @@ export const site = {
     reviews: "1000+",
     rating: "5.0",
     sinceYear: 2018,
-    years: 8,
   },
   // Если оставят телефон — менеджер свяжется по нему; tg необязателен.
   expSince: 2014,
@@ -35,4 +34,18 @@ export const site = {
 export function telegramLink(message?: string): string {
   if (!message) return site.telegram.url;
   return `${site.telegram.url}?text=${encodeURIComponent(message)}`;
+}
+
+/** Стаж на FunPay в годах — считается от текущего года, чтобы не устаревать. */
+export function funpayYears(): number {
+  return new Date().getFullYear() - site.funpay.sinceYear;
+}
+
+/** Корректное склонение: 1 год / 2 года / 8 лет. */
+export function yearsWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return "год";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "года";
+  return "лет";
 }

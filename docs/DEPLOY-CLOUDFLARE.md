@@ -200,7 +200,52 @@ cat .env | grep -E 'Bot_Token|LEAD_CHAT_ID'   # заполнены ли
 
 ---
 
-## 8. Контакты служб
+## 8. Приложение: первичная установка с нуля (если переносишь на новый сервер)
+
+> Этот раздел нужен только при разворачивании сайта на чистом сервере.
+> Сетевые особенности VPS (по опыту с `funpay-ns-bot`):
+> - `github.com` напрямую может не открываться → клонировать через зеркало:
+>   `https://<MIRROR>/https://github.com/ReStartlex/farmcore.git`
+>   (кандидаты: `gh-proxy.com`, `gh.idayer.com`, `ghfast.top` — проверить живой).
+> - `api.telegram.org` доступен напрямую → `TELEGRAM_PROXY` в `.env` оставить **пустым**.
+
+```bash
+# 1) Рантайм (если node -v < 18.17). Не трогаем системный Node бота — ставим через nvm.
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+nvm install 20 && npm i -g pm2
+
+# 2) Код (через живое зеркало из заметки выше)
+MIRROR=https://gh-proxy.com
+cd /opt
+git clone "$MIRROR/https://github.com/ReStartlex/farmcore.git"
+cd /opt/farmcore
+git remote set-url origin https://github.com/ReStartlex/farmcore.git
+
+# 3) Переменные окружения (в git их нет — создаём вручную)
+cat > .env <<'EOF'
+Bot_Token=ВАШ_ТОКЕН_БОТА
+LEAD_CHAT_ID=8372368745
+TELEGRAM_PROXY=
+NEXT_PUBLIC_YM_ID=109622322
+YANDEX_VERIFICATION=
+EOF
+chmod 600 .env
+
+# 4) Сборка и запуск
+npm ci
+npm run build
+pm2 start "npm run start" --name farmcore
+pm2 save
+pm2 startup   # выполнить выведенную команду, если попросит
+```
+
+Дальше — настроить выход наружу через Cloudflare Tunnel (разделы 2–3 этого документа).
+Nginx/Certbot и проброс портов 80/443 **не нужны** — весь трафик идёт через туннель.
+
+---
+
+## 9. Контакты служб
 
 - Cloudflare дашборд: `dash.cloudflare.com` (DNS, SSL) и `one.dash.cloudflare.com` (туннели).
 - Регистратор домена: reg.ru (там только NS-серверы, всё остальное теперь в Cloudflare).

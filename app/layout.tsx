@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Unbounded } from "next/font/google";
 import "./globals.css";
 import { site } from "@/data/site";
-import { faqJsonLd, personJsonLd, serviceJsonLd } from "@/lib/seo";
+import { organizationJsonLd, personJsonLd, serviceJsonLd, websiteJsonLd } from "@/lib/seo";
 import { Analytics } from "@/components/Analytics";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
 
@@ -21,7 +21,7 @@ const unbounded = Unbounded({
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
-  title: "CS2 ферма под ключ 2026 — расчёт, аккаунты и окупаемость | Steam ферма",
+  title: "Ферма CS2 / Steam под ключ — расчёт и окупаемость",
   description: site.description,
   keywords: [
     "ферма cs2",
@@ -69,9 +69,17 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const jsonLd = [serviceJsonLd(), faqJsonLd(), personJsonLd()];
+  // Сайтовая разметка бренда. FAQPage сюда НЕ кладём — её отдаёт только
+  // секция FAQ на страницах, где вопросы реально видны.
+  const jsonLd = [serviceJsonLd(), personJsonLd(), organizationJsonLd(), websiteJsonLd()];
   return (
     <html lang="ru" className={`${manrope.variable} ${unbounded.variable}`}>
+      <head>
+        {/* Без JS контент с анимацией появления остаётся видимым (надёжно для медленных сетей и краулеров). */}
+        <noscript>
+          <style>{`.reveal-anim{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body className="font-sans">
         <ScrollProgress />
         {children}

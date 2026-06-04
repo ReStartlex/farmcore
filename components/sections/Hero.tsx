@@ -19,7 +19,7 @@ export function Hero() {
       <div className="container-x grid items-center gap-12 pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8 lg:pb-28">
         <div>
           <motion.span
-            className="eyebrow"
+            className="reveal-anim eyebrow"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -29,7 +29,7 @@ export function Hero() {
           </motion.span>
 
           <motion.h1
-            className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]"
+            className="reveal-anim mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ink sm:text-5xl lg:text-[3.4rem]"
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
@@ -42,7 +42,7 @@ export function Hero() {
           </motion.h1>
 
           <motion.p
-            className="mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg"
+            className="reveal-anim mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.12 }}
@@ -53,7 +53,7 @@ export function Hero() {
           </motion.p>
 
           <motion.div
-            className="mt-8 flex flex-wrap items-center gap-3"
+            className="reveal-anim mt-8 flex flex-wrap items-center gap-3"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18 }}
@@ -72,7 +72,7 @@ export function Hero() {
           </motion.div>
 
           <motion.ul
-            className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-soft"
+            className="reveal-anim mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-soft"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.26 }}

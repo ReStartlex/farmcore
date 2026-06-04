@@ -55,7 +55,7 @@ export default function LandingPage({ params }: { params: { slug: string } }) {
         <Scenarios />
         <Process />
         <Trust />
-        <Faq />
+        <Faq items={landing.faq} />
         <FinalCta />
 
         <section className="border-t border-line bg-surface py-16">

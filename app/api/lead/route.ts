@@ -12,6 +12,10 @@ const RATE_WINDOW_MS = 10 * 60 * 1000; // за 10 минут
 const hits = new Map<string, number[]>();
 
 function clientIp(request: Request): string {
+  // За Cloudflare Tunnel реальный IP клиента приходит в CF-Connecting-IP;
+  // x-forwarded-for/коннектор туннеля иначе дали бы один IP на всех.
+  const cf = request.headers.get("cf-connecting-ip");
+  if (cf) return cf.trim();
   const xff = request.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
   return request.headers.get("x-real-ip") ?? "unknown";

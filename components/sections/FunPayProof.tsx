@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/ui/Reveal";
-import { site } from "@/data/site";
+import { site, funpayYears, yearsWord } from "@/data/site";
 
 /**
  * Проверяемая репутация продавца на FunPay — главный аргумент доверия.
@@ -7,6 +7,7 @@ import { site } from "@/data/site";
  */
 export function FunPayProof() {
   const { funpay } = site;
+  const years = funpayYears();
   return (
     <Reveal>
       <div className="relative overflow-hidden rounded-[2rem] border border-line bg-surface p-6 shadow-card sm:p-8">
@@ -40,9 +41,9 @@ export function FunPayProof() {
               Репутация, которую видно — а не обещания
             </h3>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              На FunPay с {funpay.sinceYear} года ({funpay.years} лет) и {funpay.reviews} отзывов с
-              рейтингом {funpay.rating}. Профиль открыт — можете проверить каждую сделку сами, до
-              обращения ко мне.
+              На FunPay с {funpay.sinceYear} года ({years} {yearsWord(years)}) и {funpay.reviews}{" "}
+              отзывов с рейтингом {funpay.rating}. Профиль открыт — можете проверить каждую сделку
+              сами, до обращения ко мне.
             </p>
           </div>
 

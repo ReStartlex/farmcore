@@ -1,15 +1,47 @@
 import { site } from "@/data/site";
-import { faq } from "@/data/faq";
+import { faq, type FaqItem } from "@/data/faq";
 
-export function faqJsonLd() {
+/**
+ * FAQPage-разметка. Отдаётся ТОЛЬКО на страницах, где FAQ виден пользователю
+ * (главная и лендинги) — иначе это нарушение требований к структурированным данным.
+ * Можно передать свой набор вопросов (для уникального FAQ на лендингах).
+ */
+export function faqJsonLd(items: FaqItem[] = faq) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: faq.map((item) => ({
+    mainEntity: items.map((item) => ({
       "@type": "Question",
       name: item.q,
       acceptedAnswer: { "@type": "Answer", text: item.a },
     })),
+  };
+}
+
+export function organizationJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: site.brand,
+    url: site.domain,
+    description: site.description,
+    sameAs: [site.telegram.url, site.funpay.url],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "sales",
+      url: site.telegram.url,
+      availableLanguage: ["ru"],
+    },
+  };
+}
+
+export function websiteJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: site.brand,
+    url: site.domain,
+    inLanguage: "ru-RU",
   };
 }
 

@@ -2,32 +2,40 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { faq } from "@/data/faq";
+import { faq as defaultFaq, type FaqItem } from "@/data/faq";
+import { faqJsonLd } from "@/lib/seo";
 import { SectionHeading } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
 
-export function Faq() {
+export function Faq({ items = defaultFaq, title }: { items?: FaqItem[]; title?: React.ReactNode }) {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
     <section id="faq" className="relative scroll-mt-24 py-20 sm:py-28">
+      {/* FAQPage-разметка скоупится сюда: появляется только там, где FAQ виден. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(items)) }}
+      />
       <div className="container-x">
         <Reveal>
           <SectionHeading
             center
             eyebrow="FAQ"
             title={
-              <>
-                Частые вопросы{" "}
-                <span className="bg-accent-grad bg-clip-text text-transparent">о ферме CS2</span>
-              </>
+              title ?? (
+                <>
+                  Частые вопросы{" "}
+                  <span className="bg-accent-grad bg-clip-text text-transparent">о ферме CS2</span>
+                </>
+              )
             }
             subtitle="Коротко и по делу — закрываем главные вопросы перед покупкой."
           />
         </Reveal>
 
         <div className="mx-auto mt-12 max-w-3xl">
-          {faq.map((item, i) => {
+          {items.map((item, i) => {
             const isOpen = open === i;
             return (
               <Reveal key={item.q} delay={Math.min(i, 6) * 0.03}>
