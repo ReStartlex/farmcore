@@ -41,65 +41,77 @@ export function Comparison() {
 
       <Reveal delay={0.1}>
         <div className="mt-12 overflow-hidden rounded-3xl border border-line bg-surface shadow-soft">
-          {/* Шапка с объёмами */}
-          <div className="grid grid-cols-[1.2fr_repeat(4,1fr)] border-b border-line bg-bg/50">
-            <div className="hidden p-4 text-xs font-semibold uppercase tracking-wider text-muted sm:block">
-              Показатель
-            </div>
-            <div className="p-4 text-xs font-semibold uppercase tracking-wider text-muted sm:hidden">
-              {" "}
-            </div>
-            {data.map((r, i) => (
-              <div
-                key={r.accountsCount}
-                className={`p-4 text-center ${i === data.length - 1 ? "bg-accent-soft" : ""}`}
-              >
-                <div className="font-display text-xl font-extrabold text-ink sm:text-2xl">
-                  {r.accountsCount}
+          <div className="-mx-px overflow-x-auto">
+            <div className="min-w-[600px]">
+              {/* Шапка с объёмами */}
+              <div className="grid grid-cols-[1.1fr_repeat(4,1fr)] border-b border-line bg-bg/50">
+                <div className="p-3 text-xs font-semibold uppercase tracking-wider text-muted sm:p-4">
+                  Показатель
                 </div>
-                <div className="text-[11px] text-muted">аккаунтов</div>
+                {data.map((r, i) => (
+                  <div
+                    key={r.accountsCount}
+                    className={`p-3 text-center sm:p-4 ${i === data.length - 1 ? "bg-accent-soft" : ""}`}
+                  >
+                    <div className="font-display text-xl font-extrabold text-ink sm:text-2xl">
+                      {r.accountsCount}
+                    </div>
+                    <div className="text-[11px] text-muted">аккаунтов</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Строки */}
-          {rows.map((row, ri) => (
-            <div
-              key={row.label}
-              className={`grid grid-cols-[1.2fr_repeat(4,1fr)] items-center ${
-                ri % 2 ? "bg-bg/30" : ""
-              }`}
-            >
-              <div className="p-4 text-xs font-medium text-muted sm:text-sm">{row.label}</div>
-              {data.map((r, i) => (
+              {/* Строки */}
+              {rows.map((row, ri) => (
                 <div
-                  key={r.accountsCount}
-                  className={`p-4 text-center text-sm font-bold sm:text-base ${
-                    i === data.length - 1 ? "bg-accent-soft/60" : ""
-                  } ${row.tone === "money" ? "text-money-ink" : "text-ink"} stat-num`}
+                  key={row.label}
+                  className={`grid grid-cols-[1.1fr_repeat(4,1fr)] items-center ${
+                    ri % 2 ? "bg-bg/30" : ""
+                  }`}
                 >
-                  {row.get(r)}
+                  <div className="p-3 text-xs font-medium text-muted sm:p-4 sm:text-sm">
+                    {row.label}
+                  </div>
+                  {data.map((r, i) => (
+                    <div
+                      key={r.accountsCount}
+                      className={`whitespace-nowrap p-3 text-center text-sm font-bold sm:p-4 sm:text-base ${
+                        i === data.length - 1 ? "bg-accent-soft/60" : ""
+                      } ${row.tone === "money" ? "text-money-ink" : "text-ink"} stat-num`}
+                    >
+                      {row.get(r)}
+                    </div>
+                  ))}
                 </div>
               ))}
-            </div>
-          ))}
 
-          {/* CTA-строка */}
-          <div className="grid grid-cols-[1.2fr_repeat(4,1fr)] items-center border-t border-line">
-            <div className="hidden p-4 sm:block" />
-            {data.map((r, i) => (
-              <div key={r.accountsCount} className={`p-3 ${i === data.length - 1 ? "bg-accent-soft" : ""}`}>
-                <button
-                  type="button"
-                  onClick={() => pick(r.accountsCount)}
-                  className="w-full rounded-full border border-line bg-surface px-2 py-2 text-xs font-semibold text-accent-ink transition-colors hover:border-accent/50 hover:bg-accent-soft"
-                >
-                  Выбрать
-                </button>
+              {/* CTA-строка */}
+              <div className="grid grid-cols-[1.1fr_repeat(4,1fr)] items-center border-t border-line">
+                <div className="p-3 sm:p-4" />
+                {data.map((r, i) => (
+                  <div
+                    key={r.accountsCount}
+                    className={`p-2 sm:p-3 ${i === data.length - 1 ? "bg-accent-soft" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => pick(r.accountsCount)}
+                      className="w-full rounded-full border border-line bg-surface px-2 py-2 text-xs font-semibold text-accent-ink transition-colors hover:border-accent/50 hover:bg-accent-soft"
+                    >
+                      Выбрать
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <p className="mt-3 text-center text-[11px] text-muted sm:hidden" aria-hidden="true">
+          ← листайте таблицу →
+        </p>
       </Reveal>
 
       <Reveal delay={0.16}>

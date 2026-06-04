@@ -52,10 +52,15 @@ export const metadata: Metadata = {
     description: site.description,
   },
   robots: { index: true, follow: true },
-  verification: process.env.YANDEX_VERIFICATION
-    ? { yandex: process.env.YANDEX_VERIFICATION }
-    : undefined,
+  verification: buildVerification(),
 };
+
+function buildVerification(): Metadata["verification"] | undefined {
+  const v: { yandex?: string; google?: string } = {};
+  if (process.env.YANDEX_VERIFICATION) v.yandex = process.env.YANDEX_VERIFICATION;
+  if (process.env.GOOGLE_VERIFICATION) v.google = process.env.GOOGLE_VERIFICATION;
+  return Object.keys(v).length ? v : undefined;
+}
 
 export const viewport: Viewport = {
   themeColor: "#F6F7FB",
