@@ -89,6 +89,18 @@ export function FinalCta() {
               >
                 Написать {site.telegram.handle}
               </a>
+
+              <a
+                href={site.funpay.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-2 text-sm text-white/70 transition-colors hover:text-white"
+              >
+                <span className="text-money">★</span>
+                <span>
+                  Проверенный продавец FunPay · {site.funpay.reviews} отзывов · {site.funpay.rating}
+                </span>
+              </a>
             </div>
 
             {/* Форма заявки */}

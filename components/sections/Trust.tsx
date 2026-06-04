@@ -1,5 +1,6 @@
 import { Section, SectionHeading } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
+import { FunPayProof } from "@/components/sections/FunPayProof";
 import { site } from "@/data/site";
 
 const pillars = [
@@ -61,7 +62,11 @@ export function Trust() {
         />
       </Reveal>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10">
+        <FunPayProof />
+      </div>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pillars.map((p, i) => (
           <Reveal key={p.title} delay={(i % 3) * 0.07}>
             <div className="card flex h-full gap-4 p-5">

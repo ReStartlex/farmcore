@@ -12,6 +12,14 @@ export const site = {
     handle: "@assistent_cs",
     url: "https://t.me/assistent_cs",
   },
+  // Проверяемая репутация продавца — главный аргумент доверия.
+  funpay: {
+    url: "https://funpay.com/users/617001/",
+    reviews: "1000+",
+    rating: "5.0",
+    sinceYear: 2018,
+    years: 8,
+  },
   // Если оставят телефон — менеджер свяжется по нему; tg необязателен.
   expSince: 2014,
   nav: [

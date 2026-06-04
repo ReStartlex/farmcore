@@ -1,10 +1,11 @@
 import { Reveal } from "@/components/ui/Reveal";
+import { site } from "@/data/site";
 
 const items = [
+  { value: site.funpay.reviews, label: "отзывов на FunPay" },
+  { value: site.funpay.rating, label: "рейтинг продавца" },
   { value: "2014", label: "в Steam-направлении с" },
   { value: "от 10", label: "аккаунтов на старт" },
-  { value: "1500 ₽", label: "цена за аккаунт от" },
-  { value: "до заявки", label: "расчёт окупаемости" },
   { value: "Telegram", label: "связь напрямую" },
 ];
 
