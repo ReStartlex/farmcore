@@ -51,22 +51,23 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a href="#calculator" className="btn-ghost hidden sm:inline-flex">
+          <a href="#calculator" className="btn-ghost hidden lg:inline-flex">
             Рассчитать
           </a>
           <a
             href={site.telegram.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-primary"
+            className="btn-primary hidden lg:inline-flex"
           >
             Написать в Telegram
           </a>
           <button
             type="button"
-            aria-label="Меню"
+            aria-label={open ? "Закрыть меню" : "Открыть меню"}
+            aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="ml-1 inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface lg:hidden"
           >
             <span className="relative block h-3 w-4">
               <span
@@ -99,6 +100,24 @@ export function Header() {
                 {item.label}
               </a>
             ))}
+            <div className="mt-2 grid grid-cols-2 gap-2 px-1 pt-1">
+              <a
+                href="#calculator"
+                onClick={() => setOpen(false)}
+                className="btn-ghost w-full"
+              >
+                Рассчитать
+              </a>
+              <a
+                href={site.telegram.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="btn-primary w-full"
+              >
+                Telegram
+              </a>
+            </div>
           </nav>
         </div>
       ) : null}
