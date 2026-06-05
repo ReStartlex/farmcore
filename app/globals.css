@@ -9,11 +9,28 @@
 * {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Убираем серый «блик» при тапе на мобильных — ощущение нативного приложения. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 96px;
+}
+
+/* Видимый фокус только для клавиатуры (не мешает мыши/тапу, важно для доступности). */
+:where(a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid theme("colors.accent.DEFAULT");
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input[type="range"].farm-range:focus-visible {
+  outline: none;
+}
+input[type="range"].farm-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 6px 18px rgba(91, 91, 214, 0.4),
+    0 0 0 4px rgba(91, 91, 214, 0.3);
 }
 
 body {

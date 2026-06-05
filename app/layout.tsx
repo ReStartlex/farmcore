@@ -75,6 +75,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru" className={`${manrope.variable} ${unbounded.variable}`}>
       <head>
+        {/* Ускоряем подключение к Яндекс.Метрике (раньше начинается TLS-хендшейк). */}
+        <link rel="preconnect" href="https://mc.yandex.ru" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://mc.yandex.ru" />
         {/* Без JS контент с анимацией появления остаётся видимым (надёжно для медленных сетей и краулеров). */}
         <noscript>
           <style>{`.reveal-anim{opacity:1!important;transform:none!important}`}</style>

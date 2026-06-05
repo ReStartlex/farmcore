@@ -106,7 +106,11 @@ export function FinalCta() {
             {/* Форма заявки */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 backdrop-blur sm:p-7">
               {status === "ok" ? (
-                <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex h-full min-h-[260px] flex-col items-center justify-center text-center"
+                >
                   <span className="flex h-14 w-14 items-center justify-center rounded-full bg-money text-2xl">
                     ✓
                   </span>
@@ -202,7 +206,7 @@ export function FinalCta() {
                   </button>
 
                   {status === "error" ? (
-                    <p className="text-center text-sm text-[#FFB4B4]">
+                    <p role="alert" className="text-center text-sm text-[#FFB4B4]">
                       Не удалось отправить. Напишите напрямую в Telegram {site.telegram.handle}.
                     </p>
                   ) : null}

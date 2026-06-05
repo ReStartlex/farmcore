@@ -40,6 +40,8 @@ export function Analytics() {
       </Script>
       <noscript>
         <div>
+          {/* Трекинг-пиксель Метрики 1×1 — это не контент, next/image тут неуместен. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`https://mc.yandex.ru/watch/${YM_ID}`}
             style={{ position: "absolute", left: "-9999px" }}
