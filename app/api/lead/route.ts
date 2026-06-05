@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import https from "node:https";
+import net from "node:net";
+import tls from "node:tls";
 import { fetch as undiciFetch, ProxyAgent } from "undici";
 
 export const runtime = "nodejs";
@@ -24,7 +26,12 @@ type TelegramApiResponse = {
   error_code?: number;
 };
 
-type DeliveryAttempt = "http_proxy" | "http_proxy_undici" | "socks5_proxy" | "direct";
+type DeliveryAttempt =
+  | "manual_connect"
+  | "http_proxy"
+  | "http_proxy_undici"
+  | "socks5_proxy"
+  | "direct";
 
 type DeliveryResult = {
   ok: boolean;
@@ -141,6 +148,155 @@ async function sendViaHttpsRequest(
   });
 }
 
+/**
+ * Открывает CONNECT-туннель через HTTP-прокси вручную — ровно как `curl -x`.
+ * Возвращает уже установленный TCP-сокет до целевого хоста (ещё без TLS).
+ * Логирует статус CONNECT-ответа прокси (например 407 — неверный логин/пароль),
+ * чего не видно при использовании https-proxy-agent / undici.
+ */
+function openProxyTunnel(
+  proxyUrl: string,
+  targetHost: string,
+  targetPort: number,
+): Promise<net.Socket> {
+  return new Promise((resolve, reject) => {
+    const proxy = new URL(proxyUrl);
+    const socket = net.connect({
+      host: proxy.hostname,
+      port: Number(proxy.port) || 80,
+    });
+
+    let buf = Buffer.alloc(0);
+
+    const cleanup = () => {
+      socket.removeListener("data", onData);
+      socket.removeListener("error", onError);
+      socket.removeListener("end", onEnd);
+    };
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    const onEnd = () => {
+      cleanup();
+      reject(new Error("proxy_closed_before_connect_response"));
+    };
+    const onData = (chunk: Buffer) => {
+      buf = Buffer.concat([buf, chunk]);
+      const headerEnd = buf.indexOf("\r\n\r\n");
+      if (headerEnd === -1) return; // ждём полный заголовок ответа на CONNECT
+      cleanup();
+      const head = buf.slice(0, headerEnd).toString("latin1");
+      const statusLine = head.split("\r\n")[0] ?? "";
+      const m = statusLine.match(/^HTTP\/\d\.\d\s+(\d{3})/);
+      const status = m ? Number(m[1]) : 0;
+      if (status === 200) {
+        resolve(socket);
+      } else {
+        socket.destroy();
+        reject(
+          Object.assign(new Error(`proxy_connect_status_${status || "unknown"}`), {
+            connectStatus: status,
+            statusLine,
+          }),
+        );
+      }
+    };
+
+    socket.once("connect", () => {
+      const hasAuth = Boolean(proxy.username || proxy.password);
+      const authHeader = hasAuth
+        ? `Proxy-Authorization: Basic ${Buffer.from(
+            `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`,
+          ).toString("base64")}\r\n`
+        : "";
+      socket.write(
+        `CONNECT ${targetHost}:${targetPort} HTTP/1.1\r\n` +
+          `Host: ${targetHost}:${targetPort}\r\n` +
+          authHeader +
+          `Proxy-Connection: Keep-Alive\r\n` +
+          `\r\n`,
+      );
+    });
+
+    socket.on("data", onData);
+    socket.once("error", onError);
+    socket.once("end", onEnd);
+  });
+}
+
+async function sendViaManualConnect(
+  url: string,
+  body: string,
+  proxyUrl: string,
+): Promise<DeliveryResult> {
+  const target = new URL(url);
+  const targetHost = target.hostname;
+  const targetPort = Number(target.port) || 443;
+
+  let tunnel: net.Socket;
+  try {
+    tunnel = await openProxyTunnel(proxyUrl, targetHost, targetPort);
+  } catch (err) {
+    const e = err as Error & { connectStatus?: number; statusLine?: string };
+    logLead("manual_connect_failed", {
+      proxy: maskProxy(proxyUrl),
+      message: e.message,
+      connectStatus: e.connectStatus ?? null,
+    });
+    return { ok: false, status: 0, body: {}, raw: "" };
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (r: DeliveryResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(r);
+    };
+
+    const req = https.request(
+      {
+        host: targetHost,
+        port: targetPort,
+        method: "POST",
+        path: `${target.pathname}${target.search}`,
+        headers: {
+          Host: targetHost,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+        // TLS поверх уже установленного CONNECT-туннеля.
+        createConnection: () => tls.connect({ socket: tunnel, servername: targetHost }),
+      },
+      (res) => {
+        let raw = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk: string) => {
+          raw += chunk;
+        });
+        res.on("end", () => finish(buildDeliveryResult(res.statusCode ?? 0, raw)));
+      },
+    );
+
+    const timer = setTimeout(() => {
+      req.destroy(new Error("manual_connect_request_timeout"));
+    }, TELEGRAM_FETCH_TIMEOUT_MS);
+
+    req.on("error", (err) => {
+      logLead("manual_connect_request_error", {
+        proxy: maskProxy(proxyUrl),
+        message: err.message,
+      });
+      finish({ ok: false, status: 0, body: {}, raw: "" });
+    });
+
+    req.write(body);
+    req.end();
+  });
+}
+
 async function sendViaHttpProxy(
   url: string,
   body: string,
@@ -247,7 +403,10 @@ async function sendToTelegram(text: string): Promise<boolean> {
     if (isSocksProxy(httpProxy)) {
       attempts.push({ attempt: "socks5_proxy", proxyUrl: httpProxy });
     } else {
-      // https-proxy-agent ближе к curl --proxy и надёжнее undici на VPS.
+      // Ручной CONNECT-туннель — точная копия `curl -x`, явно шлёт Proxy-Authorization
+      // и логирует статус CONNECT-ответа прокси. Это основной путь.
+      attempts.push({ attempt: "manual_connect", proxyUrl: httpProxy });
+      // Запасные пути на случай, если ручной туннель не сработает.
       attempts.push({ attempt: "http_proxy", proxyUrl: httpProxy });
       attempts.push({ attempt: "http_proxy_undici", proxyUrl: httpProxy });
     }
@@ -265,7 +424,9 @@ async function sendToTelegram(text: string): Promise<boolean> {
   for (const { attempt, proxyUrl } of attempts) {
     let result: DeliveryResult;
 
-    if (attempt === "http_proxy" && proxyUrl) {
+    if (attempt === "manual_connect" && proxyUrl) {
+      result = await sendViaManualConnect(url, payload, proxyUrl);
+    } else if (attempt === "http_proxy" && proxyUrl) {
       result = await sendViaHttpProxy(url, payload, proxyUrl);
     } else if (attempt === "socks5_proxy" && proxyUrl) {
       result = await sendViaSocks5(url, payload, proxyUrl);
