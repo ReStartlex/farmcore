@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import https from "node:https";
 import net from "node:net";
 import tls from "node:tls";
+import { appendFileSync } from "node:fs";
+import path from "node:path";
 import { fetch as undiciFetch, ProxyAgent } from "undici";
 
 export const runtime = "nodejs";
@@ -63,6 +65,28 @@ function maskProxy(proxyUrl: string): string {
 
 function logLead(event: string, details: Record<string, unknown>): void {
   console.log("[lead]", event, details);
+}
+
+/**
+ * Резервная копия заявки на диск (JSON Lines). Срабатывает на КАЖДУЮ заявку,
+ * поэтому ни один лид не теряется, даже если Telegram/прокси недоступны.
+ * Путь можно переопределить переменной LEADS_FILE; по умолчанию — leads.jsonl
+ * в рабочей папке приложения (на VPS это /opt/farmcore/leads.jsonl).
+ */
+function leadsFilePath(): string {
+  return process.env["LEADS_FILE"] || path.join(process.cwd(), "leads.jsonl");
+}
+
+function persistLead(record: Record<string, unknown>): boolean {
+  try {
+    appendFileSync(leadsFilePath(), `${JSON.stringify(record)}\n`, "utf8");
+    return true;
+  } catch (err) {
+    logLead("persist_error", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
 }
 
 function createProxyAgent(proxyUrl: string): ProxyAgent {
@@ -517,12 +541,26 @@ export async function POST(request: Request) {
     const { botToken, chatId } = getTelegramEnv();
     const sent = await sendToTelegram(text);
 
-    if (!sent && botToken && chatId) {
-      return NextResponse.json({ ok: false, error: "delivery_failed" }, { status: 502 });
-    }
+    // Резервная копия пишется ВСЕГДА (и при успехе — как аудит-лог всех заявок).
+    const saved = persistLead({
+      at: new Date().toISOString(),
+      mode,
+      contact,
+      accounts: accounts || null,
+      ip: clientIp(request),
+      delivered: sent,
+    });
 
     if (!sent) {
-      console.log("[lead]", { mode, contact, accounts, at: new Date().toISOString() });
+      logLead("delivery_failed", { saved, hasBot: Boolean(botToken && chatId) });
+      // Лид сохранён на диск — не показываем посетителю ошибку, заявка не потеряна.
+      if (saved) {
+        return NextResponse.json({ ok: true, saved: true });
+      }
+      // Сохранить не удалось И Telegram настроен, но не доставил — только тогда ошибка.
+      if (botToken && chatId) {
+        return NextResponse.json({ ok: false, error: "delivery_failed" }, { status: 502 });
+      }
     }
 
     return NextResponse.json({ ok: true });

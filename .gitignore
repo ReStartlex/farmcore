@@ -6,5 +6,7 @@
 next-env.d.ts
 .env*
 .DS_Store
+# Резервные копии заявок (пишутся в рантайме, не в git)
+leads.jsonl
 npm-debug.log*
 .vercel
