@@ -44,6 +44,8 @@ export default function LandingPage({ params }: { params: { slug: string } }) {
   const landing = getLanding(params.slug);
   if (!landing) notFound();
 
+  const others = landings.filter((l) => l.slug !== landing.slug);
+
   return (
     <>
       <Header />
@@ -70,6 +72,33 @@ export default function LandingPage({ params }: { params: { slug: string } }) {
                     <p key={i}>{p}</p>
                   ))}
                 </div>
+
+                {/* Внутренняя перелинковка между лендингами + на главную (помогает SEO). */}
+                <nav className="mt-8 border-t border-line pt-6" aria-label="Смотрите также">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">
+                    Смотрите также
+                  </h3>
+                  <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                    {others.map((l) => (
+                      <li key={l.slug}>
+                        <a
+                          href={`/${l.slug}`}
+                          className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+                        >
+                          {l.eyebrow}
+                        </a>
+                      </li>
+                    ))}
+                    <li>
+                      <a
+                        href="/"
+                        className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+                      >
+                        Калькулятор фермы
+                      </a>
+                    </li>
+                  </ul>
+                </nav>
               </div>
             </Reveal>
           </div>
