@@ -36,6 +36,10 @@ export const metadata: Metadata = {
     "ферма cs2 окупаемость",
     "заработок на дропе cs2",
     "аккаунты для фермы cs2",
+    "фарм cs2",
+    "ферма csgo",
+    "ферма аккаунтов cs2",
+    "ферма стим аккаунтов",
   ],
   alternates: { canonical: "/" },
   openGraph: {
