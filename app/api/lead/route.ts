@@ -1,19 +1,258 @@
 import { NextResponse } from "next/server";
+import https from "node:https";
+import { fetch as undiciFetch, ProxyAgent } from "undici";
 
 export const runtime = "nodejs";
 
-const BOT_TOKEN = process.env.Bot_Token ?? process.env.BOT_TOKEN ?? "";
-const LEAD_CHAT_ID = process.env.LEAD_CHAT_ID ?? "";
-const TELEGRAM_PROXY = process.env.TELEGRAM_PROXY ?? "";
+const TELEGRAM_FETCH_TIMEOUT_MS = 25_000;
 
 // ───────── Анти-спам: лимит по IP (in-memory, на инстанс) ─────────
 const RATE_LIMIT = 4; // не больше N заявок
 const RATE_WINDOW_MS = 10 * 60 * 1000; // за 10 минут
 const hits = new Map<string, number[]>();
 
+type TelegramEnv = {
+  botToken: string;
+  chatId: string;
+  httpProxy: string;
+  socksProxy: string;
+};
+
+type TelegramApiResponse = {
+  ok?: boolean;
+  description?: string;
+  error_code?: number;
+};
+
+type DeliveryAttempt = "http_proxy" | "socks5_proxy" | "direct";
+
+function getTelegramEnv(): TelegramEnv {
+  return {
+    botToken: process.env.Bot_Token ?? process.env.BOT_TOKEN ?? "",
+    chatId: process.env.LEAD_CHAT_ID ?? "",
+    httpProxy: process.env.TELEGRAM_PROXY ?? "",
+    socksProxy: process.env.TELEGRAM_PROXY_SOCKS5 ?? "",
+  };
+}
+
+function maskProxy(proxyUrl: string): string {
+  if (!proxyUrl) return "";
+  try {
+    const u = new URL(proxyUrl);
+    return `${u.protocol}//${u.hostname}:${u.port || (u.protocol === "https:" ? "443" : "80")}`;
+  } catch {
+    return "(invalid_proxy_url)";
+  }
+}
+
+function logLead(event: string, details: Record<string, unknown>): void {
+  console.log("[lead]", event, details);
+}
+
+function createProxyAgent(proxyUrl: string): ProxyAgent {
+  try {
+    return new ProxyAgent({ uri: proxyUrl });
+  } catch {
+    return new ProxyAgent(proxyUrl);
+  }
+}
+
+function parseTelegramBody(raw: string): TelegramApiResponse {
+  try {
+    return JSON.parse(raw) as TelegramApiResponse;
+  } catch {
+    return {};
+  }
+}
+
+function isTelegramSuccess(status: number, body: TelegramApiResponse): boolean {
+  return status >= 200 && status < 300 && body.ok === true;
+}
+
+async function readUndiciResponse(
+  res: Awaited<ReturnType<typeof undiciFetch>>,
+): Promise<{ status: number; body: TelegramApiResponse; raw: string }> {
+  const raw = await res.text();
+  return { status: res.status, body: parseTelegramBody(raw), raw: raw.slice(0, 500) };
+}
+
+async function sendViaUndici(
+  url: string,
+  body: string,
+  attempt: DeliveryAttempt,
+  proxyUrl?: string,
+): Promise<{ ok: boolean; status: number; body: TelegramApiResponse; raw: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TELEGRAM_FETCH_TIMEOUT_MS);
+
+  try {
+    const init: Parameters<typeof undiciFetch>[1] = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: controller.signal,
+    };
+
+    if (proxyUrl) {
+      init.dispatcher = createProxyAgent(proxyUrl);
+    }
+
+    const res = await undiciFetch(url, init);
+    const parsed = await readUndiciResponse(res);
+    return { ok: isTelegramSuccess(parsed.status, parsed.body), ...parsed };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function sendViaSocks5(
+  url: string,
+  body: string,
+  proxyUrl: string,
+): Promise<{ ok: boolean; status: number; body: TelegramApiResponse; raw: string }> {
+  let SocksProxyAgent: new (uri: string) => https.Agent;
+  try {
+    const mod = await import("socks-proxy-agent");
+    SocksProxyAgent = mod.SocksProxyAgent;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logLead("socks5_agent_unavailable", { message });
+    return { ok: false, status: 0, body: {}, raw: "" };
+  }
+
+  const target = new URL(url);
+  const agent = new SocksProxyAgent(proxyUrl);
+
+  return new Promise((resolve) => {
+    const req = https.request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || 443,
+        path: `${target.pathname}${target.search}`,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(body),
+        },
+        agent,
+      },
+      (res) => {
+        let raw = "";
+        res.on("data", (chunk: Buffer | string) => {
+          raw += chunk.toString();
+        });
+        res.on("end", () => {
+          clearTimeout(timer);
+          const status = res.statusCode ?? 0;
+          const parsed = parseTelegramBody(raw);
+          resolve({
+            ok: isTelegramSuccess(status, parsed),
+            status,
+            body: parsed,
+            raw: raw.slice(0, 500),
+          });
+        });
+      },
+    );
+
+    const timer = setTimeout(() => {
+      req.destroy(new Error("socks5_timeout"));
+    }, TELEGRAM_FETCH_TIMEOUT_MS);
+
+    req.on("error", (err) => {
+      clearTimeout(timer);
+      logLead("socks5_request_error", { message: err.message, proxy: maskProxy(proxyUrl) });
+      resolve({ ok: false, status: 0, body: {}, raw: "" });
+    });
+
+    req.write(body);
+    req.end();
+  });
+}
+
+function isSocksProxy(proxyUrl: string): boolean {
+  return /^socks/i.test(proxyUrl);
+}
+
+async function sendToTelegram(text: string): Promise<boolean> {
+  const { botToken, chatId, httpProxy, socksProxy } = getTelegramEnv();
+
+  logLead("env_check", {
+    hasBotToken: Boolean(botToken),
+    botTokenLen: botToken.length,
+    hasChatId: Boolean(chatId),
+    chatIdLen: chatId.length,
+    hasHttpProxy: Boolean(httpProxy) && !isSocksProxy(httpProxy),
+    httpProxy: maskProxy(httpProxy),
+    hasSocksProxy: Boolean(socksProxy),
+    socksProxy: maskProxy(socksProxy),
+  });
+
+  if (!botToken || !chatId) return false;
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const payload = JSON.stringify({
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  });
+
+  const attempts: Array<{ attempt: DeliveryAttempt; proxyUrl?: string }> = [];
+
+  if (httpProxy) {
+    if (isSocksProxy(httpProxy)) {
+      attempts.push({ attempt: "socks5_proxy", proxyUrl: httpProxy });
+    } else {
+      attempts.push({ attempt: "http_proxy", proxyUrl: httpProxy });
+    }
+  }
+
+  if (socksProxy && !attempts.some((a) => a.proxyUrl === socksProxy)) {
+    attempts.push({ attempt: "socks5_proxy", proxyUrl: socksProxy });
+  }
+
+  attempts.push({ attempt: "direct" });
+
+  for (const { attempt, proxyUrl } of attempts) {
+    try {
+      let result: { ok: boolean; status: number; body: TelegramApiResponse; raw: string };
+
+      if (attempt === "socks5_proxy" && proxyUrl) {
+        result = await sendViaSocks5(url, payload, proxyUrl);
+      } else {
+        result = await sendViaUndici(url, payload, attempt, proxyUrl);
+      }
+
+      logLead("telegram_attempt", {
+        attempt,
+        proxy: proxyUrl ? maskProxy(proxyUrl) : null,
+        status: result.status,
+        telegramOk: result.body.ok ?? false,
+        telegramError: result.body.description ?? null,
+        telegramErrorCode: result.body.error_code ?? null,
+        responsePreview: result.raw || null,
+      });
+
+      if (result.ok) return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const cause =
+        err instanceof Error && err.cause instanceof Error ? err.cause.message : undefined;
+      logLead("telegram_attempt_error", {
+        attempt,
+        proxy: proxyUrl ? maskProxy(proxyUrl) : null,
+        message,
+        cause: cause ?? null,
+      });
+    }
+  }
+
+  return false;
+}
+
 function clientIp(request: Request): string {
-  // За Cloudflare Tunnel реальный IP клиента приходит в CF-Connecting-IP;
-  // x-forwarded-for/коннектор туннеля иначе дали бы один IP на всех.
   const cf = request.headers.get("cf-connecting-ip");
   if (cf) return cf.trim();
   const xff = request.headers.get("x-forwarded-for");
@@ -26,7 +265,6 @@ function isRateLimited(ip: string): boolean {
   const arr = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
   arr.push(now);
   hits.set(ip, arr);
-  // Лёгкая уборка, чтобы Map не рос бесконечно.
   if (hits.size > 5000) {
     for (const [k, v] of hits) {
       if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k);
@@ -43,60 +281,6 @@ function escapeHtml(s: string): string {
 }
 
 /**
- * Прокси нужен на случай, если с РУ-хостинга api.telegram.org недоступен напрямую.
- * Если TELEGRAM_PROXY задан — отправка идёт через него (undici ProxyAgent).
- */
-async function buildFetchOptions(payload: object): Promise<RequestInit> {
-  const base: RequestInit = {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  };
-  if (!TELEGRAM_PROXY) return base;
-  try {
-    const { ProxyAgent } = await import("undici");
-    // @ts-expect-error — dispatcher поддерживается рантаймом undici в Node.
-    base.dispatcher = new ProxyAgent(TELEGRAM_PROXY);
-  } catch {
-    // Прокси не подключился — пробуем напрямую.
-  }
-  return base;
-}
-
-async function sendToTelegram(text: string): Promise<boolean> {
-  if (!BOT_TOKEN || !LEAD_CHAT_ID) return false;
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-  const payload = {
-    chat_id: LEAD_CHAT_ID,
-    text,
-    parse_mode: "HTML",
-    disable_web_page_preview: true,
-  };
-
-  // 1) Через прокси (если задан). 2) Фолбэк — напрямую.
-  if (TELEGRAM_PROXY) {
-    try {
-      const opts = await buildFetchOptions(payload);
-      const res = await fetch(url, opts);
-      if (res.ok) return true;
-    } catch {
-      // переходим к прямой попытке
-    }
-  }
-
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Приём заявок: отправляет уведомление в Telegram владельцу (LEAD_CHAT_ID)
  * через бота (Bot_Token). Если переменные не заданы — заявка логируется,
  * а форма всё равно отрабатывает корректно.
@@ -108,10 +292,8 @@ export async function POST(request: Request) {
     const contact = String(body?.contact ?? "").trim().slice(0, 120);
     const accounts = String(body?.accounts ?? "").trim().slice(0, 40);
     const consent = Boolean(body?.consent);
-    // Honeypot: скрытое поле, которое заполняют только боты.
     const honeypot = String(body?.company ?? "").trim();
 
-    // Бот попался в ловушку — отвечаем «успехом», но ничего не отправляем.
     if (honeypot) {
       return NextResponse.json({ ok: true });
     }
@@ -134,20 +316,21 @@ export async function POST(request: Request) {
       `<b>Аккаунтов интересует:</b> ${accounts ? escapeHtml(accounts) : "не указано"}\n` +
       `<b>Время:</b> ${new Date().toLocaleString("ru-RU", { timeZone: "Europe/Moscow" })} (МСК)`;
 
+    const { botToken, chatId } = getTelegramEnv();
     const sent = await sendToTelegram(text);
 
-    if (!sent && BOT_TOKEN && LEAD_CHAT_ID) {
-      // Настроено, но отправка не удалась — сообщаем фронту, чтобы предложить прямой контакт.
+    if (!sent && botToken && chatId) {
       return NextResponse.json({ ok: false, error: "delivery_failed" }, { status: 502 });
     }
 
     if (!sent) {
-      // Не настроено — не теряем лид хотя бы в логах.
       console.log("[lead]", { mode, contact, accounts, at: new Date().toISOString() });
     }
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logLead("bad_request", { message });
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   }
 }
