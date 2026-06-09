@@ -14,6 +14,7 @@ import { telegramLink } from "@/data/site";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { SectionHeading } from "@/components/ui/Section";
 import { Reveal } from "@/components/ui/Reveal";
+import { FORM_PREFILL_EVENT } from "@/components/sections/FinalCta";
 
 export const FARM_PRESET_EVENT = "farm:preset";
 
@@ -55,6 +56,14 @@ export function Calculator() {
   );
 
   const progress = ((r.accountsCount - CALC_LIMITS.min) / (CALC_LIMITS.max - CALC_LIMITS.min)) * 100;
+
+  // Ведём к форме заявки: переносим выбранный объём, скроллим и подсвечиваем форму.
+  function goToForm() {
+    window.dispatchEvent(new CustomEvent(FORM_PREFILL_EVENT, { detail: r.accountsCount }));
+    document.getElementById("lead")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const ctaLabel = mode === "budget" ? "Подобрать ферму под бюджет" : "Получить точный расчёт";
 
   return (
     <section id="calculator" className="relative scroll-mt-24 py-20 sm:py-28">
@@ -281,13 +290,21 @@ export function Calculator() {
                 </div>
               ) : null}
 
+              <button
+                type="button"
+                onClick={goToForm}
+                className="btn-primary mt-5 w-full text-base"
+              >
+                {ctaLabel} →
+              </button>
+
               <a
                 href={telegramLink(tgMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary mt-5 w-full text-base"
+                className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-accent transition-colors hover:text-accent-ink"
               >
-                Получить точный расчёт в Telegram
+                Или написать в Telegram сейчас
               </a>
 
               <p className="mt-3 text-center text-xs leading-relaxed text-muted">

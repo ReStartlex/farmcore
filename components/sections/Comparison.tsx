@@ -48,17 +48,24 @@ export function Comparison() {
                 <div className="p-3 text-xs font-semibold uppercase tracking-wider text-muted sm:p-4">
                   Показатель
                 </div>
-                {data.map((r, i) => (
-                  <div
-                    key={r.accountsCount}
-                    className={`p-3 text-center sm:p-4 ${i === data.length - 1 ? "bg-accent-soft" : ""}`}
-                  >
-                    <div className="font-display text-xl font-extrabold text-ink sm:text-2xl">
-                      {r.accountsCount}
+                {data.map((r, i) => {
+                  const best = i === data.length - 1;
+                  return (
+                    <div
+                      key={r.accountsCount}
+                      className={`p-3 text-center sm:p-4 ${best ? "bg-accent-soft" : ""}`}
+                    >
+                      <div
+                        className={`font-display text-xl font-extrabold sm:text-2xl ${
+                          best ? "text-accent-ink" : "text-ink"
+                        }`}
+                      >
+                        {r.accountsCount}
+                      </div>
+                      <div className="text-[11px] text-muted">аккаунтов</div>
                     </div>
-                    <div className="text-[11px] text-muted">аккаунтов</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Строки */}
@@ -76,7 +83,7 @@ export function Comparison() {
                     <div
                       key={r.accountsCount}
                       className={`whitespace-nowrap p-3 text-center text-sm font-bold sm:p-4 sm:text-base ${
-                        i === data.length - 1 ? "bg-accent-soft/60" : ""
+                        i === data.length - 1 ? "bg-accent-soft" : ""
                       } ${row.tone === "money" ? "text-money-ink" : "text-ink"} stat-num`}
                     >
                       {row.get(r)}
@@ -88,20 +95,24 @@ export function Comparison() {
               {/* CTA-строка */}
               <div className="grid grid-cols-[1.1fr_repeat(4,1fr)] items-center border-t border-line">
                 <div className="p-3 sm:p-4" />
-                {data.map((r, i) => (
-                  <div
-                    key={r.accountsCount}
-                    className={`p-2 sm:p-3 ${i === data.length - 1 ? "bg-accent-soft" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => pick(r.accountsCount)}
-                      className="w-full rounded-full border border-line bg-surface px-2 py-2 text-xs font-semibold text-accent-ink transition-colors hover:border-accent/50 hover:bg-accent-soft"
-                    >
-                      Выбрать
-                    </button>
-                  </div>
-                ))}
+                {data.map((r, i) => {
+                  const best = i === data.length - 1;
+                  return (
+                    <div key={r.accountsCount} className={`p-2 sm:p-3 ${best ? "bg-accent-soft" : ""}`}>
+                      <button
+                        type="button"
+                        onClick={() => pick(r.accountsCount)}
+                        className={`w-full rounded-full px-2 py-2 text-xs font-semibold transition-colors ${
+                          best
+                            ? "border border-transparent bg-accent-grad text-white shadow-glow hover:-translate-y-0.5"
+                            : "border border-line bg-surface text-accent-ink hover:border-accent/50 hover:bg-accent-soft"
+                        }`}
+                      >
+                        Выбрать
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

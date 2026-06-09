@@ -19,7 +19,11 @@ const config: Config = {
         line: "#E7E9F0",
         accent: {
           DEFAULT: "#5B5BD6",
-          soft: "#7A6CF0",
+          // ВНИМАНИЕ: токен `accent.soft` намеренно удалён.
+          // Он генерировал класс `.bg-accent-soft` с насыщенным цветом #7A6CF0,
+          // который конфликтовал с мягким градиентом `backgroundImage["accent-soft"]`
+          // ниже — и побеждал, превращая задуманную светлую лаванду в кричащий
+          // фиолет с нечитаемым тёмным текстом. Мягкий фон даёт только градиент.
           ink: "#3D3DAE",
         },
         money: {
@@ -45,7 +49,7 @@ const config: Config = {
       },
       backgroundImage: {
         "accent-grad": "linear-gradient(135deg, #5B5BD6 0%, #7A6CF0 100%)",
-        "accent-soft": "linear-gradient(135deg, rgba(91,91,214,.12) 0%, rgba(122,108,240,.10) 100%)",
+        "accent-soft": "linear-gradient(135deg, rgba(91,91,214,.14) 0%, rgba(122,108,240,.12) 100%)",
       },
       keyframes: {
         float: {
