@@ -302,8 +302,9 @@ export function Calculator() {
                 href={telegramLink(tgMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-semibold text-accent transition-colors hover:text-accent-ink"
+                className="mx-auto mt-3.5 flex w-fit items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-accent"
               >
+                <TgGlyph />
                 Или написать в Telegram сейчас
               </a>
 
@@ -316,6 +317,14 @@ export function Calculator() {
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function TgGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
+      <path d="M21.8 4.2 2.9 11.5c-1 .4-1 1.85.1 2.15l4.7 1.45 1.8 5.7c.27.78 1.27.97 1.86.36l2.55-2.5 4.7 3.5c.7.5 1.7.12 1.9-.72l3-15c.22-1.02-.78-1.9-1.7-1.44Z" />
+    </svg>
   );
 }
 

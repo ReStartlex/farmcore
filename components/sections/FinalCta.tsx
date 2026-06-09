@@ -79,7 +79,7 @@ export function FinalCta() {
   return (
     <section id="lead" className="relative scroll-mt-24 py-20 sm:py-28">
       <div className="container-x">
-        <div className="relative overflow-hidden rounded-[2rem] bg-ink px-6 py-12 text-white shadow-card sm:px-12 sm:py-16">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(160deg,#1d1a3e_0%,#100e1c_100%)] px-6 py-12 text-white shadow-card sm:px-12 sm:py-16">
           <div className="glow-blob left-[-5%] top-[-30%] h-72 w-72 bg-accent/50" />
           <div className="glow-blob bottom-[-40%] right-[0%] h-72 w-72 bg-money/30" />
 
@@ -126,7 +126,7 @@ export function FinalCta() {
             <div
               ref={cardRef}
               className={`rounded-3xl bg-surface p-6 text-ink shadow-card transition-all duration-300 sm:p-7 ${
-                highlight ? "shadow-lift ring-2 ring-accent ring-offset-4 ring-offset-ink" : ""
+                highlight ? "shadow-lift ring-2 ring-accent" : ""
               }`}
             >
               {status === "ok" ? (
